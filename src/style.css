@@ -1,0 +1,8 @@
+@font-face {
+  font-family: "PixelMplus";
+  src: url("/assets/fonts/PixelMplus10-Regular.ttf") format("truetype");
+}
+
+body {
+  margin: 0;
+}
