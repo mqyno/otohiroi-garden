@@ -20,20 +20,16 @@ export default class GameScene extends Phaser.Scene {
 
         this.load.image("grass", "assets/tiles/grass.png");
         this.load.image("flower", "assets/objects/flower.png");
-  
-        // this.load.image("gramophone_base","assets/objects/gramophone_base.png");
-        // this.load.image("gramophone_record","assets/objects/gramophone_record.png");
-        // this.load.image("gramophone_horn","assets/objects/gramophone_horn.png");
         this.load.image("gramophone","assets/objects/gramophone.png");
 
-        this.load.audio("bells", "assets/bgm/bells.mp3");
-        this.load.audio("pad", "assets/bgm/pad.mp3");
+        // 花
+        this.load.audio("bass_01", "assets/bgm/bass_01.mp3");
+        this.load.audio("bass_02", "assets/bgm/bass_02.mp3");
+        this.load.audio("harmony_01_01", "assets/bgm/harmony_01_01.mp3");
+        this.load.audio("harmony_01_02", "assets/bgm/harmony_01_02.mp3");
+        this.load.audio("harmony_02_01", "assets/bgm/harmony_02_01.mp3");
+        this.load.audio("harmony_02_02", "assets/bgm/harmony_02_02.mp3");
         this.load.audio("melody", "assets/bgm/melody.mp3");
-        // 花を拾う効果音
-        this.load.audio("pick_bell", "assets/se/pick_bell.mp3");
-        this.load.audio("pick_pad", "assets/se/pick_pad.mp3");
-        this.load.audio("pick_melody", "assets/se/pick_melody.mp3");
-
     }
     
     /**
@@ -62,66 +58,55 @@ export default class GameScene extends Phaser.Scene {
 
         }
 
-        // 種獲得数の表示
-        this.seedCount = 0;
-        this.seedText = this.add.text(8, 8, "音の種 0 / 3", {
-            fontFamily: "PixelMplus",
-            fontSize: "20px",
-            color: "#333333",
+        // 花情報
+        const flowerData = [
+            { id: "pink", x: 200, y: 150, collectSE: "melody", musicTrack: "melody", beatEffect: "light", },
+            { id: "blue", x: 50, y: 50, collectSE: "bass_01", musicTrack: "bass_01", beatEffect: "light", },
+            { id: "yellow", x: 100, y: 50, collectSE: "harmony_01_01", musicTrack: "harmony_01_01", beatEffect: "light", },
+            { id: "green", x: 150, y: 50, collectSE: "harmony_01_02", musicTrack: "harmony_01_02", beatEffect: "light", },
+            { id: "purple", x: 50, y: 100, collectSE: "bass_02", musicTrack: "bass_02", beatEffect: "light", },
+            { id: "white", x: 100, y: 100, collectSE: "harmony_02_01", musicTrack: "harmony_02_01", beatEffect: "light", },
+            { id: "orange", x: 150, y: 100, collectSE: "harmony_02_02", musicTrack: "harmony_02_02", beatEffect: "light", },
+        ];
+
+        this.flowers = [];
+        flowerData.forEach((data) => {
+            const flower = new Flower(
+                this,
+                data.x,
+                data.y,
+                data,
+                (flowerInfo) => this.collectSeed(flowerInfo)
+            );
+
+            this.flowers.push(flower);
         });
-        this.seedText.setResolution(1);
-        this.seedText.setScrollFactor(0);
-
-        // 花生成
-        this.flower1 = new Flower(
-            this,
-            80,
-            90,
-            {
-                collectSE: "pick_bell",
-                musicTrack: "bells",
-            },
-            (sound) => this.collectSeed(sound)
-        );
-        this.flower2 = new Flower(
-            this,
-            160,
-            90,
-            {
-                collectSE: "pick_pad",
-                musicTrack: "pad",
-            },
-            (sound) => this.collectSeed(sound)
-        );
-        this.flower3 = new Flower(
-            this,
-            200,
-            90,
-            {
-                collectSE: "pick_melody",
-                musicTrack: "melody",
-            },
-            (sound) => this.collectSeed(sound)
-        );
-
 
         this.audioManager = new AudioManager(this);
 
         // 音に合わせて動くものセット
         this.beatManager = new BeatManager(this, 96);
-        this.beatManager.onBeat(() => {
-            this.flower1.breathe();
-            this.flower2.breathe();
-            this.flower3.breathe();
-        });
         this.beatManager.onBeat((beat) => {
+
+            // プレイヤーが止まっている時だけ景色が反応
+            if (this.playerMoving) return;
+
+            // 全ての花にBeatを通知
+            this.flowers.forEach((flower) => {
+                flower.onBeat(beat);
+            });
+
+            // 庭全体の演出
+            // if (beat % 2 === 0) {
+            //     this.swayGrass();
+            // }
+
             if (beat % 4 === 0) {
                 this.ripple(210, 120);
             }
-        });
-        this.beatManager.onBeat((beat) => {
+
             if (beat % 8 === 0) {
-                this.emitLight();
+                this.emitGardenLight();
             }
         });
 
@@ -133,6 +118,16 @@ export default class GameScene extends Phaser.Scene {
             this.audioManager,
             this.beatManager
         );
+
+        // 種獲得数の表示
+        this.seedCount = 0;
+        this.seedText = this.add.text(8, 8, "音の種 0 / " + Object.keys(this.flowers).length, {
+            fontFamily: "PixelMplus",
+            fontSize: "20px",
+            color: "#333333",
+        });
+        this.seedText.setResolution(1);
+        this.seedText.setScrollFactor(0);
     }
 
     /**
@@ -146,10 +141,10 @@ export default class GameScene extends Phaser.Scene {
     /**
      * 種収集処理
      */
-    collectSeed(soundInfo) {
-        this.audioManager.addSeed(soundInfo.musicTrack);
+    collectSeed(flowerInfo) {
+        this.audioManager.addSeed(flowerInfo.musicTrack);
         this.seedCount++;
-        this.seedText.setText(`音の種 ${this.seedCount} / 3`);
+        this.seedText.setText(`音の種 ${this.seedCount} / ` + Object.keys(this.flowers).length);
     }
 
     /**
@@ -180,7 +175,7 @@ export default class GameScene extends Phaser.Scene {
     /**
      * 光の粒
      */
-    emitLight() {
+    emitGardenLight() {
         const light = this.add.circle(
             Phaser.Math.Between(30, 290),
             Phaser.Math.Between(40, 150),

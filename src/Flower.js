@@ -2,15 +2,14 @@ import Phaser from "phaser";
 
 export default class Flower {
 
-    constructor(scene, x, y, soundInfo, onCollect){
+    constructor(scene, x, y, flowerInfo, onCollect){
         this.scene = scene;
-        this.soundInfo = soundInfo;
+        this.info = flowerInfo;
         this.onCollect = onCollect;
         this.collected = false;
 
         // 花を生成
         this.sprite = scene.add.image(x, y, "flower");
-        this.soundSe = scene.sound.add(this.soundInfo.collectSE, { loop: false, volume: 60 });
 
         // クリック可能にする
         this.sprite.setInteractive();
@@ -30,10 +29,10 @@ export default class Flower {
         this.collected = true;
 
         // 効果音を鳴らす
-        this.soundSe.play();
+        this.scene.audioManager.playCollectSE(this.info.musicTrack);
 
         // 収集処理
-        this.onCollect(this.soundInfo);
+        this.onCollect(this.info);
 
         // アニメーション開始
         this.bloom();
@@ -125,6 +124,207 @@ export default class Flower {
             duration: 180,
             yoyo: true,
             ease: "Sine.InOut",
+        });
+    }
+
+    /**
+     * 拍ごとの演出
+     * @param {} beat 
+     * @returns 
+     */
+    onBeat(beat) {
+        // 拾われた花は反応しない
+        if (this.collected) return;
+        
+        // 全ての花が毎拍ふわっと呼吸する
+        this.breathe();
+
+        // 花ごとの演出
+        switch (this.info.beatEffect) {
+
+            case "light":
+            if (beat % 4 === 0) {
+                this.emitLight();
+            }
+            break;
+
+            case "ripple":
+            if (beat % 4 === 0) {
+                this.emitRipple();
+            }
+            break;
+
+            case "sparkle":
+            if (beat % 2 === 0) {
+                this.emitSparkle();
+            }
+            break;
+
+            case "petals":
+            if (beat % 8 === 0) {
+                this.emitPetals();
+            }
+            break;
+
+            case "grass":
+            if (beat % 2 === 0) {
+                this.emitLeaf();
+            }
+            break;
+
+            case "mist":
+            if (beat % 8 === 0) {
+                this.emitMist();
+            }
+            break;
+
+            case "glow":
+            this.glow();
+            break;
+
+            default:
+            break;
+        }
+    }
+
+    emitLight() {
+        const light = this.scene.add.circle(
+            this.sprite.x,
+            this.sprite.y - 6,
+            2,
+            0xfff2a6
+        );
+
+        this.scene.tweens.add({
+            targets: light,
+            y: light.y - 18,
+            alpha: 0,
+            scale: 1.8,
+            duration: 900,
+            ease: "Sine.Out",
+            onComplete: () => light.destroy()
+        });
+    }
+
+    emitRipple() {
+        const ripple = this.scene.add.circle(
+            this.sprite.x,
+            this.sprite.y,
+            3,
+            0xffffff,
+            0
+        );
+
+        ripple.setStrokeStyle(1, 0x87cefa);
+
+        this.scene.tweens.add({
+            targets: ripple,
+            radius: 16,
+            alpha: 0,
+            duration: 700,
+            ease: "Sine.Out",
+            onComplete: () => ripple.destroy()
+        });
+    }
+
+    emitSparkle() {
+        for (let i = 0; i < 3; i++) {
+
+            const sparkle = this.scene.add.star(
+            this.sprite.x + Phaser.Math.Between(-6, 6),
+            this.sprite.y + Phaser.Math.Between(-6, 6),
+            4,
+            2,
+            4,
+            0xffffff
+            );
+
+            this.scene.tweens.add({
+            targets: sparkle,
+            alpha: 0,
+            y: sparkle.y - Phaser.Math.Between(10, 18),
+            scale: 2,
+            duration: 700,
+            ease: "Sine.Out",
+            onComplete: () => sparkle.destroy()
+            });
+        }
+    }
+
+    emitPetals() {
+        const petal = this.scene.add.text(
+            this.sprite.x,
+            this.sprite.y,
+            "✿",
+            {
+            fontFamily: "PixelMplus",
+            fontSize: "10px",
+            color: "#ffb6c1"
+            }
+        );
+
+        this.scene.tweens.add({
+            targets: petal,
+            x: petal.x + Phaser.Math.Between(-12, 12),
+            y: petal.y + 18,
+            angle: Phaser.Math.Between(-40, 40),
+            alpha: 0,
+            duration: 1200,
+            ease: "Sine.Out",
+            onComplete: () => petal.destroy()
+        });
+    }
+
+    emitLeaf() {
+        const leaf = this.scene.add.text(
+            this.sprite.x,
+            this.sprite.y,
+            "❈",
+            {
+            fontFamily: "PixelMplus",
+            fontSize: "8px",
+            color: "#8bc34a"
+            }
+        );
+
+        this.scene.tweens.add({
+            targets: leaf,
+            x: leaf.x + Phaser.Math.Between(-20, 20),
+            y: leaf.y - Phaser.Math.Between(8, 18),
+            angle: Phaser.Math.Between(-90, 90),
+            alpha: 0,
+            duration: 900,
+            ease: "Sine.Out",
+            onComplete: () => leaf.destroy()
+        });
+    }
+
+    emitMist() {
+        const mist = this.scene.add.circle(
+            this.sprite.x,
+            this.sprite.y,
+            6,
+            0xffffff,
+            0.25
+        );
+
+        this.scene.tweens.add({
+            targets: mist,
+            scale: 2,
+            alpha: 0,
+            duration: 1500,
+            ease: "Sine.Out",
+            onComplete: () => mist.destroy()
+        });
+    }
+
+    glow() {
+        this.scene.tweens.add({
+            targets: this.sprite,
+            alpha: 0.5,
+            duration: 180,
+            yoyo: true,
+            ease: "Sine.InOut"
         });
     }
 }
